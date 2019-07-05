@@ -23,8 +23,8 @@ cleanWhitespace (x : xs) =
     False -> Just (x : xs)
 
 -- Excercise 8
-validatePassword :: String -> Maybe String
-validatePassword password =
+validatePassword' :: String -> Maybe String
+validatePassword' password =
   case (cleanWhitespace password) of
     Nothing -> Nothing
     Just password ->
