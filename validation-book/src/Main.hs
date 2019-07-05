@@ -39,6 +39,39 @@ main :: IO ()
 main = do
   putStr "Please enter a password\n> "
   password <- getLine
-  print (requireAlphaNum password)
+  print (validatePassword password)
 
 -- Exercise 9 returns Just ""
+
+validatePassword :: String -> Maybe String
+validatePassword password =
+  cleanWhitespace password
+    >>= requireAlphaNum
+    >>= checkPasswordLength
+
+-- Exercise 10
+reverseLine :: IO ()
+reverseLine = getLine >>= (print . reverse)
+
+reverseLine' :: IO ()
+reverseLine' = do
+  line <- getLine
+  print (reverse line)
+
+-- Exercise 11
+bindMaybe :: Maybe a -> (a -> Maybe b) -> Maybe b
+bindMaybe ma f = 
+  case ma of
+    Nothing -> Nothing
+    Just a -> f a
+
+-- Exercise 12
+data StringOrValue a = Str String | Val a deriving Show
+
+bindStringOrValue :: StringOrValue a
+                  -> (a -> StringOrValue b)
+                  -> StringOrValue b
+bindStringOrValue sorv f =
+  case sorv of
+    Str s -> Str s
+    Val a -> f a
