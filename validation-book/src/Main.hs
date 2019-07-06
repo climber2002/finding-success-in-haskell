@@ -2,23 +2,32 @@ module Main where
 
 import Data.Char
 
-checkPasswordLength :: String -> Either String String
+newtype Password = Password String
+  deriving (Show, Eq)
+
+newtype Error = Error String
+  deriving (Show, Eq)
+
+newtype Username = Username String
+  deriving (Show, Eq)
+
+checkPasswordLength :: String -> Either Error Password
 checkPasswordLength password =
-  case (passwordLength > 20 || passwordLength < 10 ) of
-    True -> Left "Your password cannot be longer \
-                  \than 20 or less than 10 characters"
-    False -> Right password
-  where passwordLength = length password
+  Password <$> (checkLength 20 password)
+
+checkUsernameLength :: String -> Either Error Username
+checkUsernameLength name =
+  Username <$> (checkLength 15 name)
 
 -- Exercise 13
-requireAlphaNum :: String -> Either String String
+requireAlphaNum :: String -> Either Error String
 requireAlphaNum xs =
   case (all isAlphaNum xs) of
-    False -> Left "All charachers must be alphabet or number"
+    False -> Left (Error "All charachers must be alphabet or number")
     True -> Right xs
 
-cleanWhitespace :: String -> Either String String
-cleanWhitespace "" = Left "Cannot be empty string"
+cleanWhitespace :: String -> Either Error String
+cleanWhitespace "" = Left (Error "Cannot be empty string")
 cleanWhitespace (x : xs) =
   case (isSpace x) of
     True -> cleanWhitespace xs
@@ -40,13 +49,13 @@ cleanWhitespace (x : xs) =
 main :: IO ()
 main = do
   putStr "Please enter a password\n> "
-  password <- getLine
+  password <- Password <$> getLine
   print (validatePassword password)
 
 -- Exercise 9 returns Just ""
 
-validatePassword :: String -> Either String String
-validatePassword password =
+validatePassword :: Password -> Either Error Password
+validatePassword (Password password) =
   cleanWhitespace password
     >>= requireAlphaNum
     >>= checkPasswordLength
@@ -99,6 +108,41 @@ eq n actual expected =
 test :: IO ()
 test = printTestResult $
   do
-    eq 1 (checkPasswordLength "") (Right "")
+    eq 1 (checkPasswordLength "") (Right $ Password "")
     eq 2 (checkPasswordLength "julielovesbooks")
-        (Right "julielovesbooks")
+        (Right $ Password "julielovesbooks")
+
+
+-- Exercise 17
+validateUsername :: Username -> Either Error Username
+validateUsername (Username username) =
+  cleanWhitespace(username)
+    >>= requireAlphaNum
+    >>= checkUsernameLength
+
+-- Exercise 18
+checkLength :: Int -> String -> Either Error String
+checkLength maxLength str =
+  case (length str > maxLength) of
+    True -> Left (Error ("Cannot be longer than " ++ show(maxLength) ++ " characters."))
+    False -> Right str
+
+-- Exercise 19
+main' :: IO ()
+main' =
+  putStr "Please enter a password\n> "
+    >>= (\_ -> Password <$> getLine)
+    >>= (\password -> print (validatePassword password))
+
+main'' :: IO ()
+main'' =
+  putStr "Please enter a password\n> "
+    >> (Password <$> getLine)
+    >>= (\password -> print (validatePassword password))
+
+-- Exercise 20
+validatePassword' :: Password -> Either Error Password
+validatePassword' (Password password) = do
+  password' <- cleanWhitespace password
+  password'' <- requireAlphaNum password'
+  checkPasswordLength password''
