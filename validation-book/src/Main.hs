@@ -48,9 +48,11 @@ cleanWhitespace (x : xs) =
 
 main :: IO ()
 main = do
+  putStr "Please enter a username. \n> "
+  username <- Username <$> getLine
   putStr "Please enter a password\n> "
   password <- Password <$> getLine
-  print (validatePassword password)
+  print (makeUser username password)
 
 -- Exercise 9 returns Just ""
 
@@ -146,3 +148,30 @@ validatePassword' (Password password) = do
   password' <- cleanWhitespace password
   password'' <- requireAlphaNum password'
   checkPasswordLength password''
+
+data User = User Username Password deriving Show
+
+makeUser :: Username -> Password -> Either Error User
+makeUser name password =
+  User <$> validateUsername name
+       <*> validatePassword password
+
+-- Exercise 21
+makeUserTmpPassword :: Username -> Either Error User
+makeUserTmpPassword name =
+    User <$> validateUsername name
+         <*> Right (Password "temporaryPassword")
+
+-- Exercise 22
+pureMaybe :: a -> Maybe a
+pureMaybe a = Just a
+
+pureEither :: a -> Either l a
+pureEither a = Right a
+
+-- Exercise 23
+-- main :: IO ()
+-- main =
+-- do
+--     result <- checkAnagram <$> promptWord1 <*> promptWord2
+--     print result
