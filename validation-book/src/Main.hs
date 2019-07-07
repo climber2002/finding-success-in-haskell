@@ -1,37 +1,39 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Main where
 
 import Data.Char
+import Data.Validation
 
 newtype Password = Password String
   deriving (Show, Eq)
 
-newtype Error = Error String
-  deriving (Show, Eq)
+newtype Error = Error [String]
+  deriving (Show, Eq, Semigroup)
 
 newtype Username = Username String
   deriving (Show, Eq)
 
-checkPasswordLength :: String -> Either Error Password
+checkPasswordLength :: String -> Validation Error Password
 checkPasswordLength password =
   Password <$> (checkLength 20 password)
 
-checkUsernameLength :: String -> Either Error Username
+checkUsernameLength :: String -> Validation Error Username
 checkUsernameLength name =
   Username <$> (checkLength 15 name)
 
 -- Exercise 13
-requireAlphaNum :: String -> Either Error String
+requireAlphaNum :: String -> Validation Error String
 requireAlphaNum xs =
   case (all isAlphaNum xs) of
-    False -> Left (Error "All charachers must be alphabet or number")
-    True -> Right xs
+    False -> Failure (Error ["All charachers must be alphabet or number"])
+    True -> Success xs
 
-cleanWhitespace :: String -> Either Error String
-cleanWhitespace "" = Left (Error "Cannot be empty string")
+cleanWhitespace :: String -> Validation Error String
+cleanWhitespace "" = Failure (Error ["Cannot be empty string"])
 cleanWhitespace (x : xs) =
   case (isSpace x) of
     True -> cleanWhitespace xs
-    False -> Right (x : xs)
+    False -> Success (x : xs)
 
 -- Excercise 8
 -- validatePassword' :: String -> Maybe String
@@ -56,11 +58,12 @@ main = do
 
 -- Exercise 9 returns Just ""
 
-validatePassword :: Password -> Either Error Password
+validatePassword :: Password -> Validation Error Password
 validatePassword (Password password) =
-  cleanWhitespace password
-    >>= requireAlphaNum
-    >>= checkPasswordLength
+  case (cleanWhitespace password) of
+    Failure err -> Failure err
+    Success password2 -> requireAlphaNum password2 *>
+                         checkPasswordLength password2
 
 -- Exercise 10
 reverseLine :: IO ()
@@ -110,24 +113,25 @@ eq n actual expected =
 test :: IO ()
 test = printTestResult $
   do
-    eq 1 (checkPasswordLength "") (Right $ Password "")
+    eq 1 (checkPasswordLength "") (Success $ Password "")
     eq 2 (checkPasswordLength "julielovesbooks")
-        (Right $ Password "julielovesbooks")
+        (Success $ Password "julielovesbooks")
 
 
 -- Exercise 17
-validateUsername :: Username -> Either Error Username
+validateUsername :: Username -> Validation Error Username
 validateUsername (Username username) =
-  cleanWhitespace(username)
-    >>= requireAlphaNum
-    >>= checkUsernameLength
+  case cleanWhitespace(username) of
+    Failure err -> Failure err
+    Success username2 -> requireAlphaNum username2
+                      *> checkUsernameLength username2
 
 -- Exercise 18
-checkLength :: Int -> String -> Either Error String
+checkLength :: Int -> String -> Validation Error String
 checkLength maxLength str =
   case (length str > maxLength) of
-    True -> Left (Error ("Cannot be longer than " ++ show(maxLength) ++ " characters."))
-    False -> Right str
+    True -> Failure (Error [("Cannot be longer than " ++ show(maxLength) ++ " characters.")])
+    False -> Success str
 
 -- Exercise 19
 main' :: IO ()
@@ -143,24 +147,24 @@ main'' =
     >>= (\password -> print (validatePassword password))
 
 -- Exercise 20
-validatePassword' :: Password -> Either Error Password
-validatePassword' (Password password) = do
-  password' <- cleanWhitespace password
-  password'' <- requireAlphaNum password'
-  checkPasswordLength password''
+-- validatePassword' :: Password -> Either Error Password
+-- validatePassword' (Password password) = do
+--   password' <- cleanWhitespace password
+--   password'' <- requireAlphaNum password'
+--   checkPasswordLength password''
 
 data User = User Username Password deriving Show
 
-makeUser :: Username -> Password -> Either Error User
+makeUser :: Username -> Password -> Validation Error User
 makeUser name password =
   User <$> validateUsername name
        <*> validatePassword password
 
 -- Exercise 21
-makeUserTmpPassword :: Username -> Either Error User
-makeUserTmpPassword name =
-    User <$> validateUsername name
-         <*> Right (Password "temporaryPassword")
+-- makeUserTmpPassword :: Username -> Either Error User
+-- makeUserTmpPassword name =
+--     User <$> validateUsername name
+--          <*> Right (Password "temporaryPassword")
 
 -- Exercise 22
 pureMaybe :: a -> Maybe a
@@ -175,3 +179,11 @@ pureEither a = Right a
 -- do
 --     result <- checkAnagram <$> promptWord1 <*> promptWord2
 --     print result
+
+-- Exercise 24 
+
+-- Exercise 25
+promptWord1 :: IO String
+promptWord1 =
+  putStr "Please enter a word.\n> " *>
+  getLine
