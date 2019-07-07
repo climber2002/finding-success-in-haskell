@@ -209,3 +209,12 @@ display name password =
   case makeUser name password of
     Failure err -> putStr (unlines (errorCoerce err))
     Success (User (Username name) password) -> putStr ("Welcome! " ++ name)
+
+-- Exercise 28
+newtype Error' = Error' String deriving Show
+instance Semigroup (Error') where
+  (Error' err1) <> (Error' err2) = Error' (err1 ++ "\n" ++ err2)
+
+-- Exercise 29
+createError :: String -> Error'
+createError msg = Error' msg
