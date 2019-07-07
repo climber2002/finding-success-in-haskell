@@ -3,6 +3,7 @@ module Main where
 
 import Data.Char
 import Data.Validation
+import Data.Coerce
 
 newtype Password = Password String
   deriving (Show, Eq)
@@ -207,8 +208,8 @@ errorCoerce (Error err) = err
 display :: Username -> Password -> IO ()
 display name password =
   case makeUser name password of
-    Failure err -> putStr (unlines (errorCoerce err))
-    Success (User (Username name) password) -> putStr ("Welcome! " ++ name)
+    Failure err -> putStr (unlines (coerce err))
+    Success (User username password) -> putStr ("Welcome! " ++ coerce username)
 
 -- Exercise 28
 newtype Error' = Error' String deriving Show
@@ -218,3 +219,18 @@ instance Semigroup (Error') where
 -- Exercise 29
 createError :: String -> Error'
 createError msg = Error' msg
+
+newtype UserPW = UserPW Password deriving (Show)
+
+userPasswordCoerce' :: UserPW -> String
+userPasswordCoerce' = coerce
+
+type Rule a = (a -> Validation Error a)
+
+validatePassword'' :: Rule Password
+validatePassword'' password =
+  case (coerce cleanWhitespace :: Rule Password) password of 
+    Failure err -> Failure err
+    Success password2 ->
+      (coerce requireAlphaNum :: Rule Password) password2 *>
+      checkPasswordLength (coerce password2)
